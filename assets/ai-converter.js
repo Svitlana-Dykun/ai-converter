@@ -16,6 +16,7 @@ jQuery( window ).on( 'elementor:init', function() {
 
 						// Simulate AI conversion process
 
+
 						// V4 Response from your AI conversion
 						const response = {
 							"elType": "e-flexbox",
@@ -65,7 +66,6 @@ jQuery( window ).on( 'elementor:init', function() {
 								edit: false,
 							},
 						} );
-
                     }
                 }
             ]
