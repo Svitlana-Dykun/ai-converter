@@ -1,82 +1,114 @@
+
+
 jQuery( window ).on( 'elementor:init', function() {
+
+    const AIConverterAPI = {
+
+        async convertContainer( containerData ) {
+            const endpoint = aiConverter.webhookUrl;
+
+            try {
+                const response = await axios.post( endpoint, containerData, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 30000
+                });
+
+                return response.data;
+            } catch ( error ) {
+                console.error( 'AI Conversion API Error:', error );
+                throw new Error( `AI conversion failed: ${error.message}` );
+            }
+        }
+    };
+
+
+    const ContainerService = {
+        extractContainerData( view ) {
+            return {
+                elType: view.model.get('elType'),
+                settings: view.model.get('settings')?.toJSON({ remove: 'default' }) || {},
+                elements: view.model.get('elements') || [],
+            };
+        },
+
+        createV4Element( v4Response, parentContainer, index = 0 ) {
+            return $e.run( 'document/elements/create', {
+                model: { ...v4Response },
+                container: parentContainer,
+                options: {
+                    at: index,
+                    edit: false,
+                },
+            });
+        }
+    };
+
+    const NotificationService = {
+        success( message ) {
+            elementor.notifications.showToast({
+                message: message,
+                type: 'success'
+            });
+        },
+
+        error( message ) {
+            elementor.notifications.showToast({
+                message: message,
+                type: 'error'
+            });
+        },
+
+        loading( message ) {
+            elementor.notifications.showToast({
+                message: message,
+                type: 'info'
+            });
+        }
+    };
+
+    const ConversionHandler = {
+        async handleConversion( view ) {
+            try {
+                NotificationService.loading( 'Converting container with AI...' );
+
+                const containerData = ContainerService.extractContainerData( view );
+
+                const v4Response = await AIConverterAPI.convertContainer( containerData );
+
+                // Get parent container for positioning
+                const rootContainer = view.container.parent;
+
+                ContainerService.createV4Element( v4Response, rootContainer, 1 );
+
+
+                // Show success notification
+                NotificationService.success( 'Container converted to V4 successfully!' );
+
+            } catch ( error ) {
+                NotificationService.error( 'Failed to convert container: ' + error.message );
+            }
+        }
+    };
 
     elementor.hooks.addFilter( 'elements/container/contextMenuGroups', function( groups, view ) {
         const converterGroup = {
             name: 'ai-converter-container',
             actions: [
                 {
-                    name: 'optimize_container',
+                    name: 'convert_to_v4',
                     title: 'Convert to V4',
                     icon: 'eicon-ai',
                     callback: function() {
-                        const container = {
-                            elType: view.model.get('elType'),
-                            settings: view.model.get('settings')?.toJSON({ remove: 'default' }) || {},
-                        };
-
-						const rootContainer = view.container.parent;
-
-						// AI conversion process
-
-						// V4 Response from your AI conversion
-						const response = {
-							"elType": "e-flexbox",
-							"settings": {
-								"classes": {
-									"$$type": "classes",
-									"value": [
-										"e-21a0e6f-095dbb2"
-									]
-								}
-							},
-							"elements": [],
-							"isInner": false,
-							"styles": {
-								"e-21a0e6f-095dbb2": {
-									"id": "e-21a0e6f-095dbb2",
-									"label": "local",
-									"type": "class",
-									"variants": [
-										{
-											"meta": {
-												"breakpoint": "desktop",
-												"state": null
-											},
-											"props": {
-												"background": {
-													"$$type": "background",
-													"value": {
-														"color": {
-															"$$type": "color",
-															"value": "#ff0000"
-														}
-													}
-												}
-											}
-										}
-									]
-								}
-							}
-						};
-
-						// Create new element in the document
-						const newContainer = $e.run( 'document/elements/create', {
-							model: { ...response },
-							container: rootContainer, // Use document container as parent
-							options: {
-								at: 1,
-								edit: false,
-							},
-						} );
-
-						console.log('New container created:', newContainer);
+                        ConversionHandler.handleConversion( view );
                     }
                 }
             ]
         };
 
-        groups.push(converterGroup);
+        groups.push( converterGroup );
         return groups;
-    } );
+    });
 } );
 
