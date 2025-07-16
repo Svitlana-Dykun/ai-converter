@@ -14,8 +14,9 @@ jQuery( window ).on( 'elementor:init', function() {
                             settings: view.model.get('settings')?.toJSON({ remove: 'default' }) || {},
                         };
 
-						// Simulate AI conversion process
+						const rootContainer = view.container.parent;
 
+						// AI conversion process
 
 						// V4 Response from your AI conversion
 						const response = {
@@ -58,14 +59,17 @@ jQuery( window ).on( 'elementor:init', function() {
 							}
 						};
 
+						// Create new element in the document
 						const newContainer = $e.run( 'document/elements/create', {
 							model: { ...response },
-							container: view.container,
+							container: rootContainer, // Use document container as parent
 							options: {
-								at: 0,
+								at: 1,
 								edit: false,
 							},
 						} );
+
+						console.log('New container created:', newContainer);
                     }
                 }
             ]
