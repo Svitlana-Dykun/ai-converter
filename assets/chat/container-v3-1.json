@@ -1,0 +1,15 @@
+{
+  "id": "d473ddf",
+  "elType": "container",
+  "settings": {
+    "min_height": {
+      "unit": "px",
+      "size": 100,
+      "sizes": []
+    },
+    "background_background": "classic",
+    "background_color": "#FF0000"
+  },
+  "elements": [],
+  "isInner": false
+}

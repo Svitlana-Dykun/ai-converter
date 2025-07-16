@@ -1,0 +1,49 @@
+{
+  "id": "21a0e6f",
+  "elType": "e-flexbox",
+  "settings": {
+    "classes": {
+      "$$type": "classes",
+      "value": [
+        "e-21a0e6f-095dbb2"
+      ]
+    }
+  },
+  "elements": [],
+  "isInner": false,
+  "styles": {
+    "e-21a0e6f-095dbb2": {
+      "id": "e-21a0e6f-095dbb2",
+      "label": "local",
+      "type": "class",
+      "variants": [
+        {
+          "meta": {
+            "breakpoint": "desktop",
+            "state": null
+          },
+          "props": {
+            "min-height": {
+              "$$type": "size",
+              "value": {
+                "size": 100,
+                "unit": "px"
+              }
+            },
+            "background": {
+              "$$type": "background",
+              "value": {
+                "color": {
+                  "$$type": "color",
+                  "value": "#ff0000"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "editor_settings": [],
+  "version": "0.0"
+}
