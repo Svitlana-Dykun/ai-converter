@@ -1,0 +1,19 @@
+{
+    "id": "d473ddf",
+    "elType": "container",
+    "settings": {
+        "content_width": "full",
+        "min_height": {
+            "unit": "px",
+            "size": 100,
+            "sizes": []
+        },
+        "background_background": "classic",
+        "background_color": "#FF0000",
+        "background_overlay_background": "classic",
+        "background_overlay_color": "#00FF84",
+        "border_border": "dotted"
+    },
+    "elements": [],
+    "isInner": false
+}
