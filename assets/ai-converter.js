@@ -32,13 +32,39 @@ jQuery( window ).on( 'elementor:init', function() {
 
     const ContainerService = {
         extractContainerData( view ) {
-            return {
+            const data = {
                 id: view.model.get('id'),
                 elType: view.model.get('elType'),
                 settings: view.model.get('settings')?.toJSON({ remove: 'default' }) || {},
-                elements: view.model.get('elements') || [],
+                elements: [],
                 isInner: view.model.get('isInner') || false
             };
+
+            // Recursively extract data from child elements
+            const children = view.model.get('elements');
+            if ( children && children.length > 0 ) {
+                data.elements = children.map( child => this.extractElementData( child ) );
+            }
+
+            return data;
+        },
+
+        extractElementData( elementModel ) {
+            const data = {
+                id: elementModel.get('id'),
+                elType: elementModel.get('elType'),
+                settings: elementModel.get('settings')?.toJSON({ remove: 'default' }) || {},
+                elements: [],
+                isInner: elementModel.get('isInner') || false
+            };
+
+            // Recursively extract data from child elements
+            const children = elementModel.get('elements');
+            if ( children && children.length > 0 ) {
+                data.elements = children.map( child => this.extractElementData( child ) );
+            }
+
+            return data;
         },
 
         createV4Element( v4Response, parentContainer, index = 0 ) {
@@ -47,16 +73,18 @@ jQuery( window ).on( 'elementor:init', function() {
                 throw new Error( 'OpenAI returned an error: ' + v4Response.error );
             }
 
+            let createdElement;
+
             // For V4 flexbox elements, create the actual V4 element
             if ( v4Response.elType === 'e-flexbox' ) {
                 try {
                     // Try to create the V4 element with the full structure
-                    return $e.run( 'document/elements/create', {
+                    createdElement = $e.run( 'document/elements/create', {
                         model: {
                             id: v4Response.id,
                             elType: 'e-flexbox',
                             settings: v4Response.settings || {},
-                            elements: v4Response.elements || [],
+                            elements: [], // We'll add children recursively
                             isInner: v4Response.isInner || false,
                             styles: v4Response.styles || {},
                             editor_settings: v4Response.editor_settings || [],
@@ -125,7 +153,7 @@ jQuery( window ).on( 'elementor:init', function() {
                     }
 
                     // Try creating as V4 flexbox with simplified settings
-                    return $e.run( 'document/elements/create', {
+                    createdElement = $e.run( 'document/elements/create', {
                         model: {
                             elType: 'e-flexbox',
                             settings: simplifiedSettings
@@ -139,7 +167,7 @@ jQuery( window ).on( 'elementor:init', function() {
                 }
             } else {
                 // Handle regular container format
-                return $e.run( 'document/elements/create', {
+                createdElement = $e.run( 'document/elements/create', {
                     model: {
                         elType: v4Response.elType || 'container',
                         settings: v4Response.settings || {}
@@ -151,6 +179,19 @@ jQuery( window ).on( 'elementor:init', function() {
                     },
                 });
             }
+
+            // Recursively create child elements
+            if ( v4Response.elements && v4Response.elements.length > 0 ) {
+                v4Response.elements.forEach( ( childElement, childIndex ) => {
+                    try {
+                        this.createV4Element( childElement, createdElement, childIndex );
+                    } catch ( childError ) {
+                        console.warn( `Failed to create child element at index ${childIndex}:`, childError );
+                    }
+                });
+            }
+
+            return createdElement;
         }
     };
 
