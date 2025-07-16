@@ -20,7 +20,7 @@ class Plugin {
 		wp_enqueue_script(
 			'ai-converter',
 			AI_CONVERTER_PLUGIN_URL . 'assets/ai-converter.js',
-			[ 'axios' ],
+			[],
 			AI_CONVERTER_VERSION,
 			true
 		);
