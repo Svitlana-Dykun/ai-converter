@@ -203,14 +203,21 @@ jQuery( window ).on( 'elementor:init', function() {
         const converterGroup = {
             name: 'ai-converter-container',
             actions: [
-                {
-                    name: 'convert_to_v4',
-                    title: 'Convert to V4',
-                    icon: 'eicon-ai',
-                    callback: function() {
-                        ConversionHandler.handleConversion( view );
-                    }
-                }
+                                 {
+                     name: 'convert_to_v4',
+                     title: 'Convert to V4',
+                     icon: 'eicon-ai',
+                     callback: function() {
+                         // Try to close the context menu through behavior
+                         if ( view._behaviors && view._behaviors.contextMenu && view._behaviors.contextMenu.contextMenu ) {
+                             view._behaviors.contextMenu.contextMenu.getModal().hide();
+                         }
+
+                         setTimeout( function() {
+                             ConversionHandler.handleConversion( view );
+                         }, 100 );
+                     }
+                 }
             ]
         };
 
