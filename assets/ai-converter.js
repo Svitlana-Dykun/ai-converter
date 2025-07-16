@@ -73,6 +73,14 @@ jQuery( window ).on( 'elementor:init', function() {
                 throw new Error( 'OpenAI returned an error: ' + v4Response.error );
             }
 
+            console.log('🔨 Creating V4 element:', {
+                id: v4Response.id,
+                elType: v4Response.elType,
+                widgetType: v4Response.widgetType,
+                hasChildren: v4Response.elements && v4Response.elements.length > 0,
+                childCount: v4Response.elements ? v4Response.elements.length : 0
+            });
+
             let createdElement;
 
             // For V4 flexbox elements, create the actual V4 element
@@ -97,60 +105,12 @@ jQuery( window ).on( 'elementor:init', function() {
                         },
                     });
                 } catch ( error ) {
-                    // If V4 creation fails, try simplified approach
-                    const simplifiedSettings = {};
-
-                    if ( v4Response.styles ) {
-                        const styleKeys = Object.keys( v4Response.styles );
-                        if ( styleKeys.length > 0 ) {
-                            const firstStyle = v4Response.styles[styleKeys[0]];
-                            if ( firstStyle.variants && firstStyle.variants[0] && firstStyle.variants[0].props ) {
-                                const props = firstStyle.variants[0].props;
-                                if ( props.background && props.background.value && props.background.value.color ) {
-                                    simplifiedSettings.background_background = 'classic';
-                                    simplifiedSettings.background_color = props.background.value.color.value;
-                                }
-                                if ( props['min-height'] && props['min-height'].value ) {
-                                    simplifiedSettings.min_height = {
-                                        unit: props['min-height'].value.unit,
-                                        size: props['min-height'].value.size
-                                    };
-                                }
-                                if ( props['max-width'] && props['max-width'].value ) {
-                                    simplifiedSettings.boxed_width = {
-                                        unit: props['max-width'].value.unit,
-                                        size: props['max-width'].value.size
-                                    };
-                                }
-                                if ( props['border-color'] && props['border-color'].value ) {
-                                    simplifiedSettings.border_color = props['border-color'].value;
-                                }
-                                if ( props['border-width'] && props['border-width'].value ) {
-                                    simplifiedSettings.border_width = {
-                                        unit: props['border-width'].value.unit,
-                                        top: props['border-width'].value.size,
-                                        right: props['border-width'].value.size,
-                                        bottom: props['border-width'].value.size,
-                                        left: props['border-width'].value.size,
-                                        isLinked: true
-                                    };
-                                }
-                                if ( props['border-radius'] && props['border-radius'].value ) {
-                                    simplifiedSettings.border_radius = {
-                                        unit: props['border-radius'].value.unit,
-                                        top: props['border-radius'].value.size,
-                                        right: props['border-radius'].value.size,
-                                        bottom: props['border-radius'].value.size,
-                                        left: props['border-radius'].value.size,
-                                        isLinked: true
-                                    };
-                                }
-                                if ( props['border-style'] && props['border-style'].value ) {
-                                    simplifiedSettings.border_border = props['border-style'].value;
-                                }
-                            }
-                        }
-                    }
+                    console.warn( 'Failed to create V4 flexbox with full structure:', error );
+                    
+                    // Fallback: create with simplified settings
+                    const simplifiedSettings = {
+                        classes: v4Response.settings?.classes || {"$$type": "classes", "value": []},
+                    };
 
                     // Try creating as V4 flexbox with simplified settings
                     createdElement = $e.run( 'document/elements/create', {
@@ -165,8 +125,46 @@ jQuery( window ).on( 'elementor:init', function() {
                         },
                     });
                 }
+            } else if ( v4Response.elType === 'widget' ) {
+                // Handle widget elements
+                try {
+                    createdElement = $e.run( 'document/elements/create', {
+                        model: {
+                            id: v4Response.id,
+                            elType: 'widget',
+                            widgetType: v4Response.widgetType,
+                            settings: v4Response.settings || {},
+                            elements: [], // Widgets don't have children
+                            isInner: v4Response.isInner || false,
+                            styles: v4Response.styles || {},
+                            editor_settings: v4Response.editor_settings || [],
+                            version: v4Response.version || "0.0"
+                        },
+                        container: parentContainer,
+                        options: {
+                            at: index,
+                            edit: false,
+                        },
+                    });
+                } catch ( error ) {
+                    console.warn( 'Failed to create widget element:', error );
+                    
+                    // Fallback: create with basic settings
+                    createdElement = $e.run( 'document/elements/create', {
+                        model: {
+                            elType: 'widget',
+                            widgetType: v4Response.widgetType,
+                            settings: v4Response.settings || {}
+                        },
+                        container: parentContainer,
+                        options: {
+                            at: index,
+                            edit: false,
+                        },
+                    });
+                }
             } else {
-                // Handle regular container format
+                // Handle regular container format (fallback)
                 createdElement = $e.run( 'document/elements/create', {
                     model: {
                         elType: v4Response.elType || 'container',
@@ -182,13 +180,20 @@ jQuery( window ).on( 'elementor:init', function() {
 
             // Recursively create child elements
             if ( v4Response.elements && v4Response.elements.length > 0 ) {
+                console.log(`🔄 Creating ${v4Response.elements.length} child elements for ${v4Response.id}`);
+                
                 v4Response.elements.forEach( ( childElement, childIndex ) => {
                     try {
-                        this.createV4Element( childElement, createdElement, childIndex );
+                        console.log(`   Creating child ${childIndex + 1}/${v4Response.elements.length}:`, childElement.widgetType || childElement.elType);
+                        const childResult = this.createV4Element( childElement, createdElement, childIndex );
+                        console.log(`   ✅ Child ${childIndex + 1} created successfully`);
                     } catch ( childError ) {
-                        console.warn( `Failed to create child element at index ${childIndex}:`, childError );
+                        console.error( `❌ Failed to create child element at index ${childIndex}:`, childError );
+                        console.error( 'Child element data:', childElement );
                     }
                 });
+            } else {
+                console.log(`ℹ️  No child elements to create for ${v4Response.id}`);
             }
 
             return createdElement;
@@ -224,17 +229,49 @@ jQuery( window ).on( 'elementor:init', function() {
                 NotificationService.loading( 'Converting container with AI...' );
 
                 const containerData = ContainerService.extractContainerData( view );
+                
+                // Debug: Log the input data
+                console.log('🔍 Input container data:', containerData);
+                
                 const v4Response = await AIConverterAPI.convertContainer( containerData );
+                
+                // Debug: Log the conversion result
+                console.log('🔍 AI conversion result:', v4Response);
+                
+                // Validate conversion result
+                if ( !v4Response || typeof v4Response !== 'object' ) {
+                    throw new Error( 'Invalid conversion result from AI' );
+                }
+                
+                // Check if nested elements were preserved
+                if ( containerData.elements && containerData.elements.length > 0 ) {
+                    if ( !v4Response.elements || v4Response.elements.length === 0 ) {
+                        console.warn('⚠️  Warning: Input had child elements but conversion result has no children');
+                        console.warn('Input elements:', containerData.elements);
+                        console.warn('Output elements:', v4Response.elements);
+                    } else {
+                        console.log('✅ Child elements preserved:', {
+                            input: containerData.elements.length,
+                            output: v4Response.elements.length
+                        });
+                    }
+                }
 
                 // Get parent container for positioning
                 const rootContainer = view.container.parent || elementor.getPreviewContainer();
 
-                ContainerService.createV4Element( v4Response, rootContainer, 1 );
+                // Create the V4 element
+                const createdElement = ContainerService.createV4Element( v4Response, rootContainer, 1 );
+                
+                // Debug: Log creation result
+                console.log('✅ Element created successfully:', createdElement);
 
                 // Show success notification
                 NotificationService.success( 'Container converted to V4 successfully!' );
 
             } catch ( error ) {
+                console.error('❌ Conversion error:', error);
+                console.error('Error stack:', error.stack);
                 NotificationService.error( 'Failed to convert container: ' + error.message );
             }
         }
