@@ -1,0 +1,15 @@
+{
+    "name": "ai-converter/converter",
+    "autoload": {
+        "psr-4": {
+            "AiConvertor\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Batsirai Muchareva",
+            "email": "162136788+Batsirai-muchareva@users.noreply.github.com"
+        }
+    ],
+    "require": {}
+}
