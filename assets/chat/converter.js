@@ -273,5 +273,4 @@ RESPOND ONLY WITH THE CONVERTED JSON OBJECT. NO EXPLANATIONS OR ADDITIONAL TEXT.
     return JSON.parse(rawContent);
 }
 
-console.log(response, rawContent);
 module.exports = { convertWidget }; 
