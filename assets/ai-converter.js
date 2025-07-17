@@ -223,6 +223,278 @@ jQuery( window ).on( 'elementor:init', function() {
         }
     };
 
+    const SatisfactionService = {
+        addSatisfactionButtons( newElement, originalContainer, originalView ) {
+            if ( ! newElement || ! newElement.view || ! newElement.view.$el ) {
+                return;
+            }
+
+            const elementId = newElement.id;
+            const $elementContainer = newElement.view.$el;
+
+            // Check if buttons already exist
+            if ( $elementContainer.find( '.ai-converter-satisfaction' ).length > 0 ) {
+                return;
+            }
+
+            // Create satisfaction buttons
+            const $satisfactionContainer = jQuery( `
+                <div class="ai-converter-satisfaction" data-element-id="${elementId}" style="
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(255, 255, 255, 0.95);
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    z-index: 9999;
+                    font-size: 12px;
+                    color: #333;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <span style="margin-right: 5px; font-weight: 500;">How was the AI conversion?</span>
+                    <button class="satisfaction-btn satisfaction-good" data-feedback="satisfied" title="Satisfied with conversion" style="
+                        background: #4CAF50;
+                        color: white;
+                        border: none;
+                        border-radius: 3px;
+                        width: 24px;
+                        height: 24px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 14px;
+                    ">✓</button>
+                    <button class="satisfaction-btn satisfaction-bad" data-feedback="not_satisfied" title="Not satisfied with conversion" style="
+                        background: #f44336;
+                        color: white;
+                        border: none;
+                        border-radius: 3px;
+                        width: 24px;
+                        height: 24px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 14px;
+                    ">✕</button>
+                </div>
+            ` );
+
+            // Add click handlers
+            $satisfactionContainer.find( '.satisfaction-btn' ).on( 'click', function( e ) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const feedback = jQuery( this ).data( 'feedback' );
+                SatisfactionService.logSatisfactionFeedback( elementId, feedback );
+                
+                // If user is satisfied, remove the original V3 element
+                if ( feedback === 'satisfied' && originalContainer ) {
+                    try {
+                        // Remove the original element using Elementor's command system
+                        $e.run( 'document/elements/delete', {
+                            container: originalContainer
+                        });
+                        
+                        NotificationService.success( 'Original element removed. Conversion completed!' );
+                    } catch ( error ) {
+                        console.error( 'Failed to remove original element:', error );
+                        NotificationService.error( 'Could not remove original element' );
+                    }
+                    
+                    // Hide the satisfaction buttons after feedback
+                    $satisfactionContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
+                    } );
+                }
+                // If user is not satisfied, show regeneration prompt
+                else if ( feedback === 'not_satisfied' ) {
+                    // Hide current satisfaction buttons and show regeneration prompt
+                    $satisfactionContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
+                        SatisfactionService.showRegenerationPrompt( newElement, originalContainer, originalView );
+                    } );
+                }
+            } );
+
+            // Position and show the buttons
+            $elementContainer.css( 'position', 'relative' );
+            $elementContainer.append( $satisfactionContainer );
+            
+            // Auto-hide after 15 seconds if no interaction
+            setTimeout( function() {
+                if ( $satisfactionContainer.is( ':visible' ) ) {
+                    $satisfactionContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
+                    } );
+                }
+            }, 15000 );
+        },
+
+        showRegenerationPrompt( currentElement, originalContainer, originalView ) {
+            if ( ! currentElement || ! currentElement.view || ! currentElement.view.$el ) {
+                return;
+            }
+
+            const elementId = currentElement.id;
+            const $elementContainer = currentElement.view.$el;
+
+            // Create regeneration prompt
+            const $regenerationContainer = jQuery( `
+                <div class="ai-converter-regeneration" data-element-id="${elementId}" style="
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: rgba(255, 255, 255, 0.95);
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    z-index: 9999;
+                    font-size: 12px;
+                    color: #333;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <span style="margin-right: 5px; font-weight: 500;">Try converting again?</span>
+                    <button class="regeneration-btn regeneration-yes" data-action="regenerate" title="Yes, try again" style="
+                        background: #4CAF50;
+                        color: white;
+                        border: none;
+                        border-radius: 3px;
+                        width: 24px;
+                        height: 24px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 14px;
+                    ">✓</button>
+                    <button class="regeneration-btn regeneration-no" data-action="delete" title="No, remove this version" style="
+                        background: #f44336;
+                        color: white;
+                        border: none;
+                        border-radius: 3px;
+                        width: 24px;
+                        height: 24px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 14px;
+                    ">✕</button>
+                </div>
+            ` );
+
+            // Add click handlers for regeneration prompt
+            $regenerationContainer.find( '.regeneration-btn' ).on( 'click', async function( e ) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const action = jQuery( this ).data( 'action' );
+                
+                if ( action === 'regenerate' ) {
+                    // Remove the prompt
+                    $regenerationContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
+                    } );
+                    
+                    // Delete current V4 element first
+                    try {
+                        $e.run( 'document/elements/delete', {
+                            container: currentElement
+                        });
+                    } catch ( error ) {
+                        console.error( 'Failed to remove current V4 element:', error );
+                    }
+                    
+                    // Regenerate the conversion
+                    NotificationService.loading( 'Regenerating conversion...' );
+                    try {
+                        await ConversionHandler.handleConversion( originalView );
+                    } catch ( error ) {
+                        console.error( 'Failed to regenerate conversion:', error );
+                        NotificationService.error( 'Failed to regenerate conversion: ' + error.message );
+                    }
+                    
+                } else if ( action === 'delete' ) {
+                    // Delete the current V4 element
+                    try {
+                        $e.run( 'document/elements/delete', {
+                            container: currentElement
+                        });
+                        
+                        NotificationService.success( 'V4 element removed. Original element preserved.' );
+                    } catch ( error ) {
+                        console.error( 'Failed to remove V4 element:', error );
+                        NotificationService.error( 'Could not remove V4 element' );
+                    }
+                    
+                    // Remove the prompt
+                    $regenerationContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
+                    } );
+                }
+            } );
+
+            // Position and show the regeneration prompt
+            $elementContainer.append( $regenerationContainer );
+            
+            // Auto-hide after 15 seconds if no interaction
+            setTimeout( function() {
+                if ( $regenerationContainer.is( ':visible' ) ) {
+                    $regenerationContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
+                    } );
+                }
+            }, 15000 );
+        },
+
+        logSatisfactionFeedback( elementId, feedback ) {
+            const feedbackData = {
+                timestamp: new Date().toISOString(),
+                elementId: elementId,
+                feedback: feedback,
+                satisfied: feedback === 'satisfied',
+                source: 'ai-converter'
+            };
+
+            console.log( '=== AI Converter Satisfaction Feedback ===', feedbackData );
+            
+            // Optional: Send to analytics or your API
+            // this.sendFeedbackToAPI( feedbackData );
+        },
+
+        sendFeedbackToAPI( feedbackData ) {
+            // Optional implementation for sending feedback to your API
+            jQuery.ajax({
+                url: aiConverter.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'ai_converter_feedback',
+                    nonce: aiConverter.nonce,
+                    feedback_data: JSON.stringify( feedbackData )
+                },
+                success: function( response ) {
+                    console.log( 'Feedback sent successfully', response );
+                },
+                error: function( error ) {
+                    console.log( 'Failed to send feedback', error );
+                }
+            });
+        }
+    };
+
     const ConversionHandler = {
         async handleConversion( view ) {
             try {
@@ -260,14 +532,15 @@ jQuery( window ).on( 'elementor:init', function() {
                 // Get parent container for positioning
                 const rootContainer = view.container.parent || elementor.getPreviewContainer();
 
-                // Create the V4 element
-                const createdElement = ContainerService.createV4Element( v4Response, rootContainer, 1 );
-                
-                // Debug: Log creation result
-                console.log('✅ Element created successfully:', createdElement);
+                const newElement = ContainerService.createV4Element( v4Response, rootContainer, 1 );
 
                 // Show success notification
                 NotificationService.success( 'Container converted to V4 successfully!' );
+
+                // Add satisfaction buttons with reference to original container and view
+                setTimeout( function() {
+                    SatisfactionService.addSatisfactionButtons( newElement, view.container, view );
+                }, 500 );
 
             } catch ( error ) {
                 console.error('❌ Conversion error:', error);
