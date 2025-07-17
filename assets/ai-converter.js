@@ -255,8 +255,8 @@ jQuery( window ).on( 'elementor:init', function() {
                     align-items: center;
                     gap: 8px;
                 ">
-                    <span style="margin-right: 5px; font-weight: 500;">How was the AI conversion?</span>
-                    <button class="satisfaction-btn satisfaction-good" data-feedback="satisfied" title="Satisfied with conversion" style="
+                    <span style="margin-right: 5px; font-weight: 500;">AI Conversion:</span>
+                    <button class="satisfaction-btn satisfaction-accept" data-action="accept" title="Accept conversion - remove original" style="
                         background: #4CAF50;
                         color: white;
                         border: none;
@@ -270,7 +270,21 @@ jQuery( window ).on( 'elementor:init', function() {
                         font-weight: bold;
                         font-size: 14px;
                     ">✓</button>
-                    <button class="satisfaction-btn satisfaction-bad" data-feedback="not_satisfied" title="Not satisfied with conversion" style="
+                    <button class="satisfaction-btn satisfaction-regenerate" data-action="regenerate" title="Try again - regenerate conversion" style="
+                        background: #2196F3;
+                        color: white;
+                        border: none;
+                        border-radius: 3px;
+                        width: 24px;
+                        height: 24px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 12px;
+                    ">↻</button>
+                    <button class="satisfaction-btn satisfaction-reject" data-action="reject" title="Reject conversion - remove new element" style="
                         background: #f44336;
                         color: white;
                         border: none;
@@ -288,38 +302,80 @@ jQuery( window ).on( 'elementor:init', function() {
             ` );
 
             // Add click handlers
-            $satisfactionContainer.find( '.satisfaction-btn' ).on( 'click', function( e ) {
+            $satisfactionContainer.find( '.satisfaction-btn' ).on( 'click', async function( e ) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                const feedback = jQuery( this ).data( 'feedback' );
-                SatisfactionService.logSatisfactionFeedback( elementId, feedback );
+                const action = jQuery( this ).data( 'action' );
                 
-                // If user is satisfied, remove the original V3 element
-                if ( feedback === 'satisfied' && originalContainer ) {
-                    try {
-                        // Remove the original element using Elementor's command system
-                        $e.run( 'document/elements/delete', {
-                            container: originalContainer
-                        });
-                        
-                        NotificationService.success( 'Original element removed. Conversion completed!' );
-                    } catch ( error ) {
-                        console.error( 'Failed to remove original element:', error );
-                        NotificationService.error( 'Could not remove original element' );
+                if ( action === 'accept' ) {
+                    // Accept the conversion - remove original element
+                    SatisfactionService.logSatisfactionFeedback( elementId, 'satisfied' );
+                    
+                    if ( originalContainer ) {
+                        try {
+                            // Remove the original element using Elementor's command system
+                            $e.run( 'document/elements/delete', {
+                                container: originalContainer
+                            });
+                            
+                            NotificationService.success( 'Original element removed. Conversion completed!' );
+                        } catch ( error ) {
+                            console.error( 'Failed to remove original element:', error );
+                            NotificationService.error( 'Could not remove original element' );
+                        }
                     }
                     
                     // Hide the satisfaction buttons after feedback
                     $satisfactionContainer.fadeOut( 300, function() {
                         jQuery( this ).remove();
                     } );
-                }
-                // If user is not satisfied, show regeneration prompt
-                else if ( feedback === 'not_satisfied' ) {
-                    // Hide current satisfaction buttons and show regeneration prompt
+                    
+                } else if ( action === 'regenerate' ) {
+                    // Regenerate - delete current and create new
+                    SatisfactionService.logSatisfactionFeedback( elementId, 'regenerate' );
+                    
+                    // Remove the satisfaction buttons
                     $satisfactionContainer.fadeOut( 300, function() {
                         jQuery( this ).remove();
-                        SatisfactionService.showRegenerationPrompt( newElement, originalContainer, originalView );
+                    } );
+                    
+                    // Delete current V4 element first
+                    try {
+                        $e.run( 'document/elements/delete', {
+                            container: newElement
+                        });
+                    } catch ( error ) {
+                        console.error( 'Failed to remove current V4 element:', error );
+                    }
+                    
+                    // Regenerate the conversion
+                    NotificationService.loading( 'Regenerating conversion...' );
+                    try {
+                        await ConversionHandler.handleConversion( originalView );
+                    } catch ( error ) {
+                        console.error( 'Failed to regenerate conversion:', error );
+                        NotificationService.error( 'Failed to regenerate conversion: ' + error.message );
+                    }
+                    
+                } else if ( action === 'reject' ) {
+                    // Reject - delete the new V4 element, keep original
+                    SatisfactionService.logSatisfactionFeedback( elementId, 'not_satisfied' );
+                    
+                    try {
+                        $e.run( 'document/elements/delete', {
+                            container: newElement
+                        });
+                        
+                        NotificationService.success( 'V4 element removed. Original element preserved.' );
+                    } catch ( error ) {
+                        console.error( 'Failed to remove V4 element:', error );
+                        NotificationService.error( 'Could not remove V4 element' );
+                    }
+                    
+                    // Remove the satisfaction buttons
+                    $satisfactionContainer.fadeOut( 300, function() {
+                        jQuery( this ).remove();
                     } );
                 }
             } );
@@ -338,127 +394,7 @@ jQuery( window ).on( 'elementor:init', function() {
             }, 15000 );
         },
 
-        showRegenerationPrompt( currentElement, originalContainer, originalView ) {
-            if ( ! currentElement || ! currentElement.view || ! currentElement.view.$el ) {
-                return;
-            }
 
-            const elementId = currentElement.id;
-            const $elementContainer = currentElement.view.$el;
-
-            // Create regeneration prompt
-            const $regenerationContainer = jQuery( `
-                <div class="ai-converter-regeneration" data-element-id="${elementId}" style="
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    background: rgba(255, 255, 255, 0.95);
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    padding: 8px 12px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                    z-index: 9999;
-                    font-size: 12px;
-                    color: #333;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                ">
-                    <span style="margin-right: 5px; font-weight: 500;">Try converting again?</span>
-                    <button class="regeneration-btn regeneration-yes" data-action="regenerate" title="Yes, try again" style="
-                        background: #4CAF50;
-                        color: white;
-                        border: none;
-                        border-radius: 3px;
-                        width: 24px;
-                        height: 24px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        font-size: 14px;
-                    ">✓</button>
-                    <button class="regeneration-btn regeneration-no" data-action="delete" title="No, remove this version" style="
-                        background: #f44336;
-                        color: white;
-                        border: none;
-                        border-radius: 3px;
-                        width: 24px;
-                        height: 24px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        font-size: 14px;
-                    ">✕</button>
-                </div>
-            ` );
-
-            // Add click handlers for regeneration prompt
-            $regenerationContainer.find( '.regeneration-btn' ).on( 'click', async function( e ) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                const action = jQuery( this ).data( 'action' );
-                
-                if ( action === 'regenerate' ) {
-                    // Remove the prompt
-                    $regenerationContainer.fadeOut( 300, function() {
-                        jQuery( this ).remove();
-                    } );
-                    
-                    // Delete current V4 element first
-                    try {
-                        $e.run( 'document/elements/delete', {
-                            container: currentElement
-                        });
-                    } catch ( error ) {
-                        console.error( 'Failed to remove current V4 element:', error );
-                    }
-                    
-                    // Regenerate the conversion
-                    NotificationService.loading( 'Regenerating conversion...' );
-                    try {
-                        await ConversionHandler.handleConversion( originalView );
-                    } catch ( error ) {
-                        console.error( 'Failed to regenerate conversion:', error );
-                        NotificationService.error( 'Failed to regenerate conversion: ' + error.message );
-                    }
-                    
-                } else if ( action === 'delete' ) {
-                    // Delete the current V4 element
-                    try {
-                        $e.run( 'document/elements/delete', {
-                            container: currentElement
-                        });
-                        
-                        NotificationService.success( 'V4 element removed. Original element preserved.' );
-                    } catch ( error ) {
-                        console.error( 'Failed to remove V4 element:', error );
-                        NotificationService.error( 'Could not remove V4 element' );
-                    }
-                    
-                    // Remove the prompt
-                    $regenerationContainer.fadeOut( 300, function() {
-                        jQuery( this ).remove();
-                    } );
-                }
-            } );
-
-            // Position and show the regeneration prompt
-            $elementContainer.append( $regenerationContainer );
-            
-            // Auto-hide after 15 seconds if no interaction
-            setTimeout( function() {
-                if ( $regenerationContainer.is( ':visible' ) ) {
-                    $regenerationContainer.fadeOut( 300, function() {
-                        jQuery( this ).remove();
-                    } );
-                }
-            }, 15000 );
-        },
 
         logSatisfactionFeedback( elementId, feedback ) {
             const feedbackData = {
