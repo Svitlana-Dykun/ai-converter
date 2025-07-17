@@ -237,67 +237,106 @@ jQuery( window ).on( 'elementor:init', function() {
                 return;
             }
 
-            // Create satisfaction buttons
+            // Create satisfaction buttons with Material UI styling
             const $satisfactionContainer = jQuery( `
                 <div class="ai-converter-satisfaction" data-element-id="${elementId}" style="
                     position: absolute;
                     top: 10px;
                     right: 10px;
-                    background: rgba(255, 255, 255, 0.95);
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    padding: 8px 12px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                    background: #ffffff;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.12);
                     z-index: 9999;
-                    font-size: 12px;
+                    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
                     color: #333;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
+                    min-width: 280px;
+                    max-width: 320px;
+                    overflow: hidden;
                 ">
-                    <span style="margin-right: 5px; font-weight: 500;">AI Conversion:</span>
-                    <button class="satisfaction-btn satisfaction-accept" data-action="accept" title="Accept conversion - remove original" style="
-                        background: #4CAF50;
-                        color: white;
-                        border: none;
-                        border-radius: 3px;
-                        width: 24px;
-                        height: 24px;
-                        cursor: pointer;
+                    <div style="
+                        padding: 16px 20px 8px 20px;
+                        border-bottom: 1px solid #f0f0f0;
+                    ">
+                        <h3 style="
+                            margin: 0 0 4px 0;
+                            font-size: 16px;
+                            font-weight: 500;
+                            color: #1a1a1a;
+                            line-height: 1.3;
+                        ">AI Conversion</h3>
+                        <p style="
+                            margin: 0;
+                            font-size: 14px;
+                            color: #666;
+                            line-height: 1.4;
+                        ">How would you like to proceed with this conversion?</p>
+                    </div>
+                    <div style="
+                        padding: 12px 16px 16px 16px;
                         display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        font-size: 14px;
-                    ">✓</button>
-                    <button class="satisfaction-btn satisfaction-regenerate" data-action="regenerate" title="Try again - regenerate conversion" style="
-                        background: #2196F3;
-                        color: white;
-                        border: none;
-                        border-radius: 3px;
-                        width: 24px;
-                        height: 24px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        font-size: 12px;
-                    ">↻</button>
-                    <button class="satisfaction-btn satisfaction-reject" data-action="reject" title="Reject conversion - remove new element" style="
-                        background: #f44336;
-                        color: white;
-                        border: none;
-                        border-radius: 3px;
-                        width: 24px;
-                        height: 24px;
-                        cursor: pointer;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-weight: bold;
-                        font-size: 14px;
-                    ">✕</button>
+                        gap: 8px;
+                        justify-content: flex-end;
+                    ">
+                        <button class="satisfaction-btn satisfaction-reject" data-action="reject" title="Reject conversion - remove new element" style="
+                            background: transparent;
+                            color: #666;
+                            border: 1px solid #ddd;
+                            border-radius: 4px;
+                            padding: 8px 16px;
+                            cursor: pointer;
+                            font-family: inherit;
+                            font-size: 14px;
+                            font-weight: 500;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            transition: all 0.2s ease;
+                            min-width: 64px;
+                            height: 36px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        " onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#999';" onmouseout="this.style.background='transparent'; this.style.borderColor='#ddd';">REJECT</button>
+                        <button class="satisfaction-btn satisfaction-regenerate" data-action="regenerate" title="Try again - regenerate conversion" style="
+                            background: transparent;
+                            color: #666;
+                            border: 1px solid #ddd;
+                            border-radius: 4px;
+                            padding: 8px 16px;
+                            cursor: pointer;
+                            font-family: inherit;
+                            font-size: 14px;
+                            font-weight: 500;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            transition: all 0.2s ease;
+                            min-width: 64px;
+                            height: 36px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        " onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#999';" onmouseout="this.style.background='transparent'; this.style.borderColor='#ddd';">RETRY</button>
+                        <button class="satisfaction-btn satisfaction-accept" data-action="accept" title="Accept conversion - remove original" style="
+                            background: #F3BAFD;
+                            color: white;
+                            border: 1px solid #9c27b0;
+                            border-radius: 4px;
+                            padding: 8px 16px;
+                            cursor: pointer;
+                            font-family: inherit;
+                            font-size: 14px;
+                            font-weight: 500;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            transition: all 0.2s ease;
+                            min-width: 64px;
+                            height: 36px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        " onmouseover="this.style.background='#7b1fa2';" onmouseout="this.style.background='#F3BAFD';">ACCEPT</button>
+                    </div>
                 </div>
             ` );
 
