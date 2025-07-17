@@ -547,6 +547,22 @@ RESPOND ONLY WITH THE CONVERTED JSON OBJECT. NO EXPLANATIONS OR ADDITIONAL TEXT.
 			}
 		}
 		
+		// Load container heading button training examples
+		$container_heading_button_v3_file = $plugin_dir . "assets/chat/ContainerHeadingButtonV3-1.json";
+		$container_heading_button_v4_file = $plugin_dir . "assets/chat/ContainerHeadingButtonV4-1.json";
+		
+		if ( file_exists( $container_heading_button_v3_file ) && file_exists( $container_heading_button_v4_file ) ) {
+			$container_heading_button_v3_data = json_decode( file_get_contents( $container_heading_button_v3_file ), true );
+			$container_heading_button_v4_data = json_decode( file_get_contents( $container_heading_button_v4_file ), true );
+			
+			if ( $container_heading_button_v3_data && $container_heading_button_v4_data ) {
+				$examples[] = [
+					'v3' => $container_heading_button_v3_data,
+					'v4' => $container_heading_button_v4_data
+				];
+			}
+		}
+		
 		return $examples;
 	}
 } 

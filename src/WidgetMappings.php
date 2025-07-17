@@ -83,6 +83,42 @@ class WidgetMappings {
 						'target' => 'styles.props.text-align',
 						'type' => 'string'
 					],
+					'align' => [
+						'target' => 'styles.props.text-align',
+						'type' => 'string'
+					],
+					'typography_font_family' => [
+						'target' => 'styles.props.font-family',
+						'type' => 'string'
+					],
+					'typography_font_size' => [
+						'target' => 'styles.props.font-size',
+						'type' => 'size'
+					],
+					'typography_font_weight' => [
+						'target' => 'styles.props.font-weight',
+						'type' => 'string'
+					],
+					'_margin' => [
+						'target' => 'styles.props.margin',
+						'type' => 'spacing'
+					],
+					'_padding' => [
+						'target' => 'styles.props.padding',
+						'type' => 'spacing'
+					],
+					'_element_width' => [
+						'target' => 'styles.props.width',
+						'type' => 'size'
+					],
+					'_element_custom_width' => [
+						'target' => 'styles.props.width',
+						'type' => 'size'
+					],
+					'_flex_align_self' => [
+						'target' => 'styles.props.align-self',
+						'type' => 'string'
+					],
 					'link' => [
 						'target' => 'settings.link',
 						'type' => 'link'
@@ -220,6 +256,12 @@ class WidgetMappings {
 			],
 			'background_overlay' => [
 				'structure' => '{"$$type": "background", "value": {"background-overlay": {"$$type": "background-overlay", "value": []}}}'
+			],
+			'spacing' => [
+				'structure' => '{"$$type": "size", "value": {"unit": "UNIT", "size": SIZE}}'
+			],
+			'shadow' => [
+				'structure' => '{"$$type": "shadow", "value": {"horizontal": HORIZONTAL, "vertical": VERTICAL, "blur": BLUR, "spread": SPREAD, "color": "COLOR"}}'
 			]
 		];
 	}
