@@ -23,8 +23,8 @@ class OpenAIConverter {
 	}
 	
 	public function convert_widget( $container_data ) {
-		// Use the ACTUAL container data from Elementor (not hardcoded file)
-		// But keep the same OpenAI API structure as Node.js version
+		// IMPORTANT: Create deep copy to prevent modifying original data
+		$container_data_copy = json_decode( json_encode( $container_data ), true );
 		
 		$system_prompt = $this->get_system_prompt();
 		$examples = $this->get_training_examples();
@@ -40,8 +40,8 @@ class OpenAIConverter {
 			$messages[] = [ 'role' => 'assistant', 'content' => json_encode( $example['v4'] ) ];
 		}
 		
-		// Add the ACTUAL container data from Elementor (not hardcoded file)
-		$messages[] = [ 'role' => 'user', 'content' => json_encode( $container_data ) ];
+		// Use the COPIED data (not original)
+		$messages[] = [ 'role' => 'user', 'content' => json_encode( $container_data_copy ) ];
 		
 		$response = $this->call_openai_api( $messages );
 		
@@ -261,7 +261,7 @@ class OpenAIConverter {
 		$data = [
 			'model' => 'gpt-4o-mini',
 			'temperature' => 0,
-			'max_tokens' => 1000, // Increased for complex conversions
+			'max_tokens' => 2000, // INCREASED from 1000 for complex conversions
 			'messages' => $messages
 		];
 		
@@ -293,6 +293,23 @@ class OpenAIConverter {
 	private function get_system_prompt() {
 		return '
 You are an expert Elementor V3 to V4 converter specializing in complex widget transformations with advanced type systems and class-based styling.
+
+## CRITICAL COLOR CONVERSION RULES
+
+### ALWAYS CONVERT THESE COLOR PROPERTIES:
+- title_color → "color": {"$$type": "color", "value": "#HEX_VALUE"}
+- text_color → "color": {"$$type": "color", "value": "#HEX_VALUE"}  
+- background_color → "background": {"$$type": "background", "value": {"color": {"$$type": "color", "value": "#HEX_VALUE"}}}
+- button color → "color": {"$$type": "color", "value": "#HEX_VALUE"}
+
+### COLOR CONVERSION EXAMPLES:
+V3: "title_color": "#FF98FD"
+V4: "color": {"$$type": "color", "value": "#FF98FD"}
+
+V3: "background_color": "#0BFF00"  
+V4: "background": {"$$type": "background", "value": {"color": {"$$type": "color", "value": "#0BFF00"}}}
+
+NEVER SKIP COLOR PROPERTIES - ALWAYS CONVERT THEM TO PROPER V4 FORMAT!
 
 ## CRITICAL REQUIREMENT: PRESERVE ALL NESTED ELEMENTS
 When converting containers with child elements, you MUST:
